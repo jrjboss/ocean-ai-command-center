@@ -10,7 +10,7 @@ from datetime import datetime
 
 import streamlit as st
 from PIL import Image
-from roboflow_client import run_sam3
+from roboflow_client import run_sam3_full
 
 BASE = Path.home() / "ocean-ai-roboflow-test"
 IMPORTS = BASE / "company_inspections/imports"
@@ -127,7 +127,11 @@ def run_worker(batch, limit):
                     with Image.open(BytesIO(data)) as im:
                         im.verify()
 
-                    annotated, predictions = run_sam3(data, key)
+                    results = run_sam3_full(data, key)
+                    annotated = results['clean'] or results['labeled']
+                    predictions = results['predictions']
+                    labeled = results['labeled']
+                    has_clean = results['clean'] is not None
 
                     with Image.open(BytesIO(annotated)) as im:
                         im.verify()
@@ -143,10 +147,19 @@ def run_worker(batch, limit):
                     )
 
                     annotation_path.write_bytes(annotated)
+                    labeled_path = None
+                    if labeled is not None:
+                        with Image.open(BytesIO(labeled)) as lim:
+                            lim.verify()
+                            labeled_suffix = '.png' if lim.format == 'PNG' else '.jpg'
+                        labeled_path = destination / (image.name + '.labeled' + labeled_suffix)
+                        labeled_path.write_bytes(labeled)
 
                     record = {
                         "source_image": str(image),
                         "annotated_image": str(annotation_path),
+                        "clean_preview": str(annotation_path) if has_clean else "",
+                        "labeled_image": str(labeled_path) if labeled_path else "",
                         "predictions": predictions,
                         "processed_at": datetime.now().isoformat(),
                         "engineer_review": "pending"
