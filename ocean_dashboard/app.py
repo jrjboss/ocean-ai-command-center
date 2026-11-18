@@ -263,6 +263,10 @@ hr {border-color: #29485c !important;}
 """, unsafe_allow_html=True)
 
 
+# OCEAN_AI_DESIGN_TRAINING_V1
+st.markdown((Path(__file__).with_name('ocean_visual_system.css')).read_text(encoding='utf-8'), unsafe_allow_html=True)
+
+
 def escaped(value):
     return html.escape(str(value))
 
@@ -377,7 +381,7 @@ def overview():
         SAM 3 corrosion candidates, batch processing,
         and human review.
       </div>
-      <div class="ocean-tag">● LOCAL INSPECTION PLATFORM</div>
+      <div class="ocean-tag">● CLOUD INFERENCE · LOCAL INSTALLATION PLANNED</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -481,7 +485,7 @@ def overview():
             )
 
             key_status = (
-                "Stored securely on local machine"
+                "Configured for this installation"
                 if secret_key()
                 else "Not configured"
             )
@@ -684,25 +688,60 @@ st.sidebar.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-page = st.sidebar.radio(
-    "WORKSPACE",
-    [
-        "Overview",
-        "Inspection Studio",
-        "Batch Center",
-        "Results Library",
-        "AI Performance",
-        "ROV Operations"
-    ]
+NAV_GROUPS = [
+    ("INSPECTION WORKSPACE", [
+        ("Overview", "⌂"),
+        ("Inspection Studio", "◎"),
+        ("Batch Center", "▦"),
+        ("Results Library", "▤"),
+    ]),
+    ("AI & QUALITY", [
+        ("AI Performance", "◈"),
+        ("SAM 3 Training", "◇"),
+    ]),
+    ("FIELD SYSTEMS", [
+        ("ROV Operations", "⚙"),
+    ]),
+]
+
+if st.session_state.get("ocean_page_v2") not in {
+    name for _group, links in NAV_GROUPS for name, _icon in links
+}:
+    st.session_state["ocean_page_v2"] = "Overview"
+page = st.session_state["ocean_page_v2"]
+for group_name, links in NAV_GROUPS:
+    st.sidebar.markdown(
+        f'<div class="ocean-nav-group">{group_name}</div>',
+        unsafe_allow_html=True,
+    )
+    for name, symbol in links:
+        if st.sidebar.button(
+            f"{symbol}  {name}",
+            key="ocean_nav_" + name.lower().replace(" ", "_"),
+            type="primary" if page == name else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state["ocean_page_v2"] = name
+            st.rerun()
+
+st.sidebar.markdown(
+    '<div class="ocean-sidebar-footer">'
+    'DEVELOPMENT PROTOTYPE<br>'
+    'Roboflow SAM 3 Cloud · Company-local installation planned'
+    '</div>',
+    unsafe_allow_html=True,
 )
-
-st.sidebar.divider()
-st.sidebar.caption("OCEAN AI · DEVELOPMENT EDITION")
-st.sidebar.caption("Local workstation / SAM 3 Cloud")
-
-if st.sidebar.button("Refresh Inspection Data"):
+if st.sidebar.button("↻  Refresh inspection data", key="ocean_refresh_data"):
     snapshot.clear()
     st.rerun()
+
+st.markdown(
+    '<div class="ocean-global-top">'
+    '<span><span class="ocean-pulse"></span> OCEAN AI / MARITIME INTELLIGENCE</span>'
+    '<span class="ocean-global-meta">SAM 3 CLOUD MODE <span>•</span> ENGINEER REVIEW REQUIRED</span>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 if page == "Overview":
     overview()
@@ -714,6 +753,9 @@ elif page == "Results Library":
     results_library()
 elif page == "AI Performance":
     ai_performance()
+elif page == "SAM 3 Training":
+    from training_lab import show_training_lab
+    show_training_lab(snapshot)
 elif page == "ROV Operations":
     rov_operations()
 
